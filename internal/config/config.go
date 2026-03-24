@@ -14,6 +14,7 @@ type Config struct {
 	ExternalAPIURL     string
 	APITimeout         time.Duration
 	CacheRefreshPeriod time.Duration
+	UseRedis           bool
 	RedisAddr          string
 	RedisPass          string
 }
@@ -30,6 +31,7 @@ func LoadConfig() *Config {
 		ExternalAPIURL:     getEnv("LIVE_CARPARK_API_URL", "https://api.data.gov.sg/v1/transport/carpark-availability"),
 		APITimeout:         time.Duration(getEnvAsInt("API_TIMEOUT_SEC", 10)) * time.Second,
 		CacheRefreshPeriod: time.Duration(getEnvAsInt("CACHE_REFRESH_PERIOD_SEC", 60)) * time.Second,
+		UseRedis:           getEnv("USE_REDIS", "false") == "true",
 		RedisAddr:          getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPass:          getEnv("REDIS_PASS", ""),
 	}

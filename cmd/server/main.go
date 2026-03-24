@@ -9,15 +9,19 @@ import (
 	"go-car-park/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
 	// 1. Configuration
 	cfg := config.LoadConfig()
 	apiClient := client.NewAvailabilityClient(cfg)
-	liveCarParkService := service.NewLiveCarParkAvailabilityService(apiClient)
+	rdb := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisAddr,
+	})
 
 	// 2. Initialize Service (The @Service / @PostConstruct equivalent)
+	liveCarParkService := service.NewLiveCarParkAvailabilityService(apiClient, rdb)
 	carParkService, err := service.NewCarParkService(cfg.CSVPath, liveCarParkService)
 	if err != nil {
 		log.Fatalf("Could not initialize service: %v", err)

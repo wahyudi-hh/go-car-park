@@ -5,7 +5,7 @@ This project is a backend service developed as part of my journey to learn **Gol
 The project follows **Clean Architecture** principles (Controller-Service-Repository) and focuses on writing idiomatic, testable, and performant Go code.
 
 ## 🚀 Purpose
-The main goal of this project was to transition from a Java-based background to Go, specifically focusing on:
+The main goal of this project was part of my journey to learn Go, specifically focusing on:
 - **Dependency Injection**: Managing service layers without external frameworks.
 - **Concurrency**: Using Go's native features for efficient data handling.
 - **Testing**: Implementing full Integration Tests using `httptest` and `testify`.
@@ -49,6 +49,7 @@ Returns a paginated list of the closest carparks with their current available lo
     }
   ]
 }
+```
 
 ## 🚦 Getting Started
 

@@ -17,14 +17,14 @@ type CarParkResponse struct {
 	CarParkInfo    []CarParkInfo `json:"car_park_info"`
 	CarParkNo      string        `json:"car_park_no"`
 	Distance       float64       `json:"distance_meters"`
-	UpdateDateTime string        `json:"update_datetime,omitempty"` // From Live API
+	UpdateDateTime string        `json:"update_datetime,omitempty"`
 	XCoord         float64       `json:"x_coord"`
 	YCoord         float64       `json:"y_coord"`
 }
 
 type PagedResponse struct {
-	Content       interface{} `json:"content"`
-	CurrentPage   int         `json:"current_page"`
-	TotalElements int         `json:"total_elements"`
-	TotalPages    int         `json:"total_pages"`
+	Content       []CarParkResponse `json:"content"`
+	CurrentPage   int               `json:"current_page"`
+	TotalElements int               `json:"total_elements"`
+	TotalPages    int               `json:"total_pages"`
 }

@@ -39,8 +39,7 @@ func NewCarParkService(filePath string, liveCarParkService *LiveCarParkAvailabil
 	}
 
 	return &CarParkService{
-		cache: cache,
-		// apiClient: apiClient,
+		cache:                   cache,
 		liveCarpackAvailability: liveCarParkService,
 	}, nil
 }

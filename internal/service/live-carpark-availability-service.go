@@ -75,7 +75,8 @@ func (s *LiveCarParkAvailabilityService) fetchRedisCache(cfg *config.Config) mod
 		log.Println("Using cached availability data from Redis")
 		return UnmarshalFile(cachedData)
 	} else if err != redis.Nil {
-		log.Printf("Error accessing Redis cache: %v", err)
+		log.Printf("Failed accessing Redis cache Fallback to fetch External API. Error: %v", err)
+		return s.fetchLiveData()
 	}
 
 	// 2.Perform the actual "Feign" call

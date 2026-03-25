@@ -64,6 +64,11 @@
 							"total_lots": "407",
 							"lot_type": "C",
 							"lots_available": "233"
+						},
+						{
+							"total_lots": "132",
+							"lot_type": "Y",
+							"lots_available": "64"
 						}
 					],
 					"carpark_number": "TH20",
@@ -82,6 +87,27 @@
 				},
 				{
 					"carpark_info": [
+						{
+							"total_lots": "407",
+							"lot_type": "C",
+							"lots_available": "10"
+						},
+						{
+							"total_lots": "146",
+							"lot_type": "Y",
+							"lots_available": "10"
+						}
+					],
+					"carpark_number": "UNKNOWN",
+					"update_datetime": "2026-03-16T22:55:22"
+				},
+				{
+					"carpark_info": [
+						{
+							"total_lots": "407",
+							"lot_type": "C",
+							"lots_available": "A"
+						},
 						{
 							"total_lots": "146",
 							"lot_type": "Y",

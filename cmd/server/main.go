@@ -22,7 +22,7 @@ func main() {
 
 	// 2. Initialize Service (The @Service / @PostConstruct equivalent)
 	liveCarParkService := service.NewLiveCarParkAvailabilityService(apiClient, rdb)
-	carParkService, err := service.NewCarParkService(cfg.CSVPath, liveCarParkService)
+	carParkService, err := service.NewCarParkService(cfg, liveCarParkService)
 	if err != nil {
 		log.Fatalf("Could not initialize service: %v", err)
 	}

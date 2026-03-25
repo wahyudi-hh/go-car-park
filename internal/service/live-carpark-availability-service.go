@@ -124,6 +124,21 @@ func (s *LiveCarParkAvailabilityService) fetchLiveData() model.AvailabilityRespo
 		}
 		return model.AvailabilityResponse{} // Return empty if no cache
 	}
+
+	// Filter only available carparks
+	liveCarParkDatas := liveData.Items[0].CarParkData
+	n := 0
+	for _, data := range liveCarParkDatas {
+		availableCount := 0
+		for _, info := range data.CarParkInfo {
+			availableCount += atoi(info.LotsAvailable)
+		}
+		if availableCount > 0 {
+			liveCarParkDatas[n] = data
+			n++
+		}
+	}
+	liveData.Items[0].CarParkData = liveCarParkDatas[:n]
 	return *liveData
 }
 

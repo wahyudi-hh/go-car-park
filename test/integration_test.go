@@ -48,7 +48,7 @@ func TestEndToEnd(t *testing.T) {
 	cfg := config.LoadConfig()
 	apiClient := client.NewAvailabilityClient(cfg)
 	liveSvc := svc.NewLiveCarParkAvailabilityService(apiClient, nil)
-	carParkSvc, err := svc.NewCarParkService(cfg.CSVPath, liveSvc)
+	carParkSvc, err := svc.NewCarParkService(cfg, liveSvc)
 	if err != nil {
 		t.Fatalf("failed to init car park service: %v", err)
 	}

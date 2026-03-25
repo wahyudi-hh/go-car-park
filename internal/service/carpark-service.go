@@ -4,9 +4,11 @@ import (
 	"log"
 	"math"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 
+	"go-car-park/internal/config"
 	"go-car-park/internal/model"
 
 	"github.com/gocarina/gocsv"
@@ -14,13 +16,14 @@ import (
 
 type CarParkService struct {
 	// Our in-memory cache (The 2,270 records)
-	cache                   map[string]model.CarPark
+	carParkCache            map[string]model.CarPark
 	liveCarpackAvailability *LiveCarParkAvailabilityService
+	supportedLotTypes       []string
 }
 
 // NewCarParkService acts like your @PostConstruct / Bean Initialization
-func NewCarParkService(filePath string, liveCarParkService *LiveCarParkAvailabilityService) (*CarParkService, error) {
-	file, err := os.Open(filePath)
+func NewCarParkService(cfg *config.Config, liveCarParkService *LiveCarParkAvailabilityService) (*CarParkService, error) {
+	file, err := os.Open(cfg.CSVPath)
 	if err != nil {
 		return nil, err
 	}
@@ -33,14 +36,15 @@ func NewCarParkService(filePath string, liveCarParkService *LiveCarParkAvailabil
 		return nil, err
 	}
 
-	cache := make(map[string]model.CarPark)
+	carParkMap := make(map[string]model.CarPark)
 	for _, cp := range data {
-		cache[cp.CarParkNo] = cp
+		carParkMap[cp.CarParkNo] = cp
 	}
 
 	return &CarParkService{
-		cache:                   cache,
+		carParkCache:            carParkMap,
 		liveCarpackAvailability: liveCarParkService,
+		supportedLotTypes:       cfg.SupportedLotTypes,
 	}, nil
 }
 
@@ -48,11 +52,15 @@ func NewCarParkService(filePath string, liveCarParkService *LiveCarParkAvailabil
 func (s *CarParkService) GetPagedNearest(userX, userY float64, page, size int, lotType string) model.PagedResponse {
 	// 1. Fetch Live Data (check cache first if empty then Feign Call)
 	availabilityData := s.liveCarpackAvailability.getLatestAvailability()
+	carParkData := availabilityData.Items[0].CarParkData
 
 	// 2. Filter and Calculate distances
+	if lotType != "" {
+		carParkData = filterByLotType(carParkData, lotType)
+	}
 	var responses []model.CarParkResponse
-	for _, lcp := range availabilityData.Items[0].CarParkData {
-		carPark, foundCP := s.cache[lcp.CarParkNumber]
+	for _, lcp := range carParkData {
+		carPark, foundCP := s.carParkCache[lcp.CarParkNumber]
 		if !foundCP {
 			continue // Skip if no static data for this car park
 		}
@@ -64,7 +72,7 @@ func (s *CarParkService) GetPagedNearest(userX, userY float64, page, size int, l
 				LotsAvailable: atoi(info.LotsAvailable),
 			})
 		}
-		dist := s.calculateEuclidean(userX, userY, carPark.XCoord, carPark.YCoord)
+		dist := calculateEuclidean(userX, userY, carPark.XCoord, carPark.YCoord)
 		responses = append(responses, model.CarParkResponse{
 			CarParkInfo:    infos,
 			CarParkNo:      carPark.CarParkNo,
@@ -117,8 +125,29 @@ func atoi(s string) int {
 }
 
 // Euclidean distance calculation (Meters for SVY21)
-func (s *CarParkService) calculateEuclidean(x1, y1, x2, y2 float64) float64 {
+func calculateEuclidean(x1, y1, x2, y2 float64) float64 {
 	dx := x2 - x1
 	dy := y2 - y1
 	return math.Sqrt(dx*dx + dy*dy)
+}
+
+func (s *CarParkService) IsLotTypeSupported(lotType string) bool {
+	if s.supportedLotTypes == nil {
+		return true // If no filter is set, consider all lot types as supported
+	}
+	return slices.Contains(s.supportedLotTypes, lotType)
+}
+
+func filterByLotType(src []model.LiveCarParkData, lotType string) []model.LiveCarParkData {
+	n := 0
+	for _, item := range src {
+		for _, info := range item.CarParkInfo {
+			if (info.LotType == lotType) && atoi(info.LotsAvailable) > 0 {
+				src[n] = item
+				n++
+				break // No need to check other infos for this car park
+			}
+		}
+	}
+	return src[:n]
 }

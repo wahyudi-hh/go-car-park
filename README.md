@@ -66,6 +66,7 @@ LIVE_CARPARK_API_URL=https://api.data.gov.sg/v1/transport/carpark-availability
 USE_REDIS=false
 REDIS_ADDR=127.0.0.1:6379
 REDIS_PASS=
+SUPPORTED_LOT_TYPES=C,H,S,Y
 ```
 
 ### Installation

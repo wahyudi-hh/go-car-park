@@ -37,6 +37,13 @@ func (h *CarParkHandler) GetNearest(c *gin.Context) {
 		return
 	}
 
+	if lotType != "" && !h.Service.IsLotTypeSupported(lotType) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Unsupported lot type",
+		})
+		return
+	}
+
 	page, _ := strconv.Atoi(pageStr)
 	size, _ := strconv.Atoi(sizeStr)
 

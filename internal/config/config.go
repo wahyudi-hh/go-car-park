@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -17,6 +18,7 @@ type Config struct {
 	UseRedis           bool
 	RedisAddr          string
 	RedisPass          string
+	SupportedLotTypes  []string
 }
 
 func LoadConfig() *Config {
@@ -33,6 +35,7 @@ func LoadConfig() *Config {
 		UseRedis:           getEnv("USE_REDIS", "false") == "true",
 		RedisAddr:          getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPass:          getEnv("REDIS_PASS", ""),
+		SupportedLotTypes:  GetEnvSlice("SUPPORTED_LOT_TYPES"),
 	}
 }
 
@@ -51,4 +54,14 @@ func getEnvAsInt(key string, defaultVal int) int {
 		}
 	}
 	return defaultVal
+}
+
+func GetEnvSlice(key string) []string {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return nil
+	}
+
+	parts := strings.Split(raw, ",")
+	return parts
 }

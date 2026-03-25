@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"go-car-park/internal/client"
 	"go-car-park/internal/config"
@@ -229,4 +230,111 @@ func TestRedisCache(t *testing.T) {
 	res2.Body.Close()
 	assert.Equal(t, http.StatusOK, res2.StatusCode)
 	assert.Equal(t, 1, callCount, "Second call should return from Redis cache, NOT the API")
+}
+
+// TestInvalidCSVPath tests error handling when CSV file path is invalid
+func TestInvalidCSVPath(t *testing.T) {
+	os.Setenv("CSV_PATH", "/nonexistent/path.csv")
+	cfg := config.LoadConfig()
+	apiClient := client.NewAvailabilityClient(cfg)
+	liveSvc := svc.NewLiveCarParkAvailabilityService(apiClient, nil)
+	_, err := svc.NewCarParkService(cfg, liveSvc)
+	assert.Error(t, err)
+}
+
+// TestInvalidCSVContent tests error handling when CSV content is invalid
+func TestInvalidCSVContent(t *testing.T) {
+	// Create a temporary file with invalid CSV content
+	tempFile, err := os.CreateTemp("", "invalid*.csv")
+	require.NoError(t, err)
+	defer os.Remove(tempFile.Name())
+
+	// Write invalid CSV: x_coord is not a number
+	_, err = tempFile.WriteString("car_park_no,address,x_coord,y_coord\nTEST,TEST,invalid_float,31490.4942")
+	require.NoError(t, err)
+	tempFile.Close()
+
+	os.Setenv("CSV_PATH", tempFile.Name())
+	cfg := config.LoadConfig()
+	apiClient := client.NewAvailabilityClient(cfg)
+	liveSvc := svc.NewLiveCarParkAvailabilityService(apiClient, nil)
+	_, err = svc.NewCarParkService(cfg, liveSvc)
+	assert.Error(t, err)
+}
+
+// TestEndToEnd runs an integration-style end-to-end test across packages
+func TestInvalidAvailabilityJsonResponse(t *testing.T) {
+	url, teardown := setupTest(t, "availability_invalid_json.json", nil)
+	defer teardown()
+
+	target := url + "/car-parks/nearest?user_x=30314.7936&user_y=31490.4942&page=0&size=5"
+	res, err := http.Get(target)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	var out model.PagedResponse
+	err = json.NewDecoder(res.Body).Decode(&out)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, out.TotalElements)
+	assert.Empty(t, out.Content)
+	assert.Equal(t, 0, out.TotalPages)
+}
+
+// TestExternalAPI500 tests the behavior when the external API returns a 500 error
+func TestExternalAPI500(t *testing.T) {
+	// Start a miniredis server
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	defer mr.Close()
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: mr.Addr(),
+	})
+
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer mockServer.Close()
+
+	os.Setenv("LIVE_CARPARK_API_URL", mockServer.URL)
+
+	url, teardown := setupTest(t, "", redisClient)
+	defer teardown()
+
+	res, err := http.Get(url + "/car-parks/nearest?user_x=30314.7936&user_y=31490.4942&&page=1")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	var out model.PagedResponse
+	err = json.NewDecoder(res.Body).Decode(&out)
+	assert.Equal(t, 0, out.TotalElements)
+	assert.Empty(t, out.Content)
+	assert.Equal(t, 0, out.TotalPages)
+	res.Body.Close()
+}
+
+// TestExternalAPITimeout tests the behavior when the external API times out
+func TestExternalAPITimeout(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(2 * time.Second) // Sleep for 2 seconds
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer mockServer.Close()
+
+	os.Setenv("LIVE_CARPARK_API_URL", mockServer.URL)
+	os.Setenv("API_TIMEOUT_SEC", "1") // Set a short timeout for testing
+
+	url, teardown := setupTest(t, "", nil)
+	defer teardown()
+
+	res, err := http.Get(url + "/car-parks/nearest?user_x=30314.7936&user_y=31490.4942&&page=1")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	var out model.PagedResponse
+	err = json.NewDecoder(res.Body).Decode(&out)
+	assert.Equal(t, 0, out.TotalElements)
+	assert.Empty(t, out.Content)
+	assert.Equal(t, 0, out.TotalPages)
+	res.Body.Close()
 }

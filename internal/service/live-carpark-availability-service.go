@@ -58,10 +58,12 @@ func (s *LiveCarParkAvailabilityService) fetchMutexCache(cfg *config.Config) mod
 	// Perform the actual "Feign" call
 	liveData := s.fetchLiveData()
 
-	s.liveCarparkCache = liveData
-	s.lastFetchTime = time.Now()
+	if liveData.Items != nil {
+		s.liveCarparkCache = liveData
+		s.lastFetchTime = time.Now()
+	}
 
-	return s.liveCarparkCache
+	return liveData
 }
 
 func (s *LiveCarParkAvailabilityService) fetchRedisCache(cfg *config.Config) model.AvailabilityResponse {
@@ -81,6 +83,9 @@ func (s *LiveCarParkAvailabilityService) fetchRedisCache(cfg *config.Config) mod
 
 	// 2.Perform the actual "Feign" call
 	liveData := s.fetchLiveData()
+	if liveData.Items == nil {
+		return liveData
+	}
 
 	// 3. Save to Redis
 	// To prevent cache stampede, use Redis SET with NX option

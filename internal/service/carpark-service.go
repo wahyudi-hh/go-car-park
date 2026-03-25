@@ -52,6 +52,9 @@ func NewCarParkService(cfg *config.Config, liveCarParkService *LiveCarParkAvaila
 func (s *CarParkService) GetPagedNearest(userX, userY float64, page, size int, lotType string) model.PagedResponse {
 	// 1. Fetch Live Data (check cache first if empty then Feign Call)
 	availabilityData := s.liveCarpackAvailability.getLatestAvailability()
+	if availabilityData.Items == nil {
+		return fallbackResponse(nil, page, size)
+	}
 	carParkData := availabilityData.Items[0].CarParkData
 
 	// 2. Filter and Calculate distances
@@ -94,11 +97,7 @@ func (s *CarParkService) GetPagedNearest(userX, userY float64, page, size int, l
 	}
 	start := (page - 1) * size
 	if start >= len(responses) {
-		var pagedResponse model.PagedResponse
-		pagedResponse.CurrentPage = page
-		pagedResponse.TotalElements = len(responses)
-		pagedResponse.TotalPages = (len(responses) + size - 1) / size
-		return pagedResponse
+		return fallbackResponse(responses, page, size)
 	}
 
 	end := start + size
@@ -113,6 +112,14 @@ func (s *CarParkService) GetPagedNearest(userX, userY float64, page, size int, l
 	pagedResponse.TotalElements = len(responses)
 	pagedResponse.TotalPages = (len(responses) + size - 1) / size
 
+	return pagedResponse
+}
+
+func fallbackResponse(responses []model.CarParkResponse, page int, size int) model.PagedResponse {
+	var pagedResponse model.PagedResponse
+	pagedResponse.CurrentPage = page
+	pagedResponse.TotalElements = len(responses)
+	pagedResponse.TotalPages = (len(responses) + size - 1) / size
 	return pagedResponse
 }
 
